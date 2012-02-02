@@ -42,7 +42,7 @@ struct stub_stream_in {
 
 static uint32_t out_get_sample_rate(const struct audio_stream *stream)
 {
-    return 44100;
+    return 16000;
 }
 
 static int out_set_sample_rate(struct audio_stream *stream, uint32_t rate)
@@ -57,7 +57,7 @@ static size_t out_get_buffer_size(const struct audio_stream *stream)
 
 static audio_channel_mask_t out_get_channels(const struct audio_stream *stream)
 {
-    return AUDIO_CHANNEL_OUT_STEREO;
+    return AUDIO_CHANNEL_OUT_MONO;
 }
 
 static audio_format_t out_get_format(const struct audio_stream *stream)
