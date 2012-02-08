@@ -144,9 +144,32 @@ int mapFrameBufferLocked(struct private_module_t* module)
             "/dev/fb%u",
             0 };
 
-    int fd = -1;
+    int fd;
     int i=0;
     char name[64];
+
+    // Allow the user to specify the default framebuffer device
+    // on the kernel command line - e.g. on iMX6, /dev/fb1 is HDMI
+    // and /dev/fb0 is LVDS
+    fd = open("/proc/cmdline", O_RDONLY);
+    if(fd>0) {
+        char cmdline[2048];
+        cmdline[2047]=0;
+        read(fd, &cmdline, 2047);
+        close(fd);
+
+        char *dev=strstr(cmdline, " fbdev=");
+        if(!dev && !strncmp(cmdline, "fbdev=", 6))
+            dev=cmdline;
+        if(dev) {
+            dev=strchr(dev, '=')+1;
+            if(strchr(dev, ' '))
+                *strchr(dev, ' ')=0;
+            if(strchr(dev, '\n'))
+                *strchr(dev, '\n')=0;
+        }
+        fd = dev ? open(dev, O_RDWR, 0) : -1;
+    }
 
     while ((fd==-1) && device_template[i]) {
         snprintf(name, 64, device_template[i], 0);
