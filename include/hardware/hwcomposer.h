@@ -59,6 +59,44 @@ __BEGIN_DECLS
  */
 #define HWC_HARDWARE_COMPOSER   "composer"
 
+
+struct hwc_composer_device;
+
+/*
+ * availability: HWC_DEVICE_API_VERSION_0_3
+ *
+ * struct hwc_methods cannot be embedded in other structures as
+ * sizeof(struct hwc_methods) cannot be relied upon.
+ *
+ */
+typedef struct hwc_methods {
+
+    /*************************************************************************
+     * HWC_DEVICE_API_VERSION_0_3
+     *************************************************************************/
+
+    /*
+     * eventControl(..., event, value)
+     * Enables or disables h/w composer events.
+     *
+     * eventControl can be called from any thread and takes effect
+     * immediately.
+     *
+     *  Supported events are:
+     *      HWC_EVENT_VSYNC
+     *      HWC_EVENT_ORIENTATION
+     *
+     * returns -EINVAL if the "event" parameter is not one of the value above
+     * or if the "value" parameter is not 0 or 1 for HWC_EVENT_VSYNC.
+     * and if the "value" parameter is not going to be just 0 or 1 for
+     * HWC_EVENT_ORIENTATION
+     */
+
+    int (*eventControl)(
+            struct hwc_composer_device* dev, int event, int value);
+
+} hwc_methods_t;
+
 typedef struct hwc_rect {
     int left;
     int top;

@@ -179,7 +179,8 @@ enum {
 
 /* Allowed events for hwc_methods::eventControl() */
 enum {
-    HWC_EVENT_VSYNC     = 0
+    HWC_EVENT_VSYNC     = 0,
+    HWC_EVENT_ORIENTATION    // To notify HWC about the device orientation
 };
 
 /* Display types and associated mask bits. */
