@@ -97,9 +97,6 @@ enum {
     /* this layer holds the result of compositing the HWC_FRAMEBUFFER layers.
      * Added in HWC_DEVICE_API_VERSION_1_1. */
     HWC_FRAMEBUFFER_TARGET = 3,
-
-    /* this layer will be handled in the HWC, using a blit engine */
-    HWC_BLIT = 4,
 };
 
 /*
@@ -182,8 +179,7 @@ enum {
 
 /* Allowed events for hwc_methods::eventControl() */
 enum {
-    HWC_EVENT_VSYNC     = 0,
-    HWC_EVENT_ORIENTATION    // To notify HWC about the device orientation
+    HWC_EVENT_VSYNC     = 0
 };
 
 /* Display types and associated mask bits. */
