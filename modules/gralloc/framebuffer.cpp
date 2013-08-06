@@ -97,8 +97,8 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         const size_t offset = hnd->base - m->framebuffer->base;
         m->info.activate = FB_ACTIVATE_VBL;
         m->info.yoffset = offset / m->finfo.line_length;
-        if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) {
-            ALOGE("FBIOPUT_VSCREENINFO failed");
+        if (ioctl(m->framebuffer->fd, FBIOPAN_DISPLAY, &m->info) == -1) {
+            ALOGE("FBIOPAN_DISPLAY failed");
             m->base.unlock(&m->base, buffer); 
             return -errno;
         }
@@ -144,9 +144,32 @@ int mapFrameBufferLocked(struct private_module_t* module)
             "/dev/fb%u",
             0 };
 
-    int fd = -1;
+    int fd;
     int i=0;
     char name[64];
+
+    // Allow the user to specify the default framebuffer device
+    // on the kernel command line - e.g. on iMX6, /dev/fb1 is HDMI
+    // and /dev/fb0 is LVDS
+    fd = open("/proc/cmdline", O_RDONLY);
+    if(fd>0) {
+        char cmdline[2048];
+        cmdline[2047]=0;
+        read(fd, &cmdline, 2047);
+        close(fd);
+
+        char *dev=strstr(cmdline, " fbdev=");
+        if(!dev && !strncmp(cmdline, "fbdev=", 6))
+            dev=cmdline;
+        if(dev) {
+            dev=strchr(dev, '=')+1;
+            if(strchr(dev, ' '))
+                *strchr(dev, ' ')=0;
+            if(strchr(dev, '\n'))
+                *strchr(dev, '\n')=0;
+        }
+        fd = dev ? open(dev, O_RDWR, 0) : -1;
+    }
 
     while ((fd==-1) && device_template[i]) {
         snprintf(name, 64, device_template[i], 0);
@@ -330,7 +353,7 @@ int fb_device_open(hw_module_t const* module, const char* name,
         if (status >= 0) {
             int stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
             int format = (m->info.bits_per_pixel == 32)
-                         ? HAL_PIXEL_FORMAT_RGBX_8888
+                         ? (m->info.red.offset ? HAL_PIXEL_FORMAT_BGRA_8888 : HAL_PIXEL_FORMAT_RGBX_8888)
                          : HAL_PIXEL_FORMAT_RGB_565;
             const_cast<uint32_t&>(dev->device.flags) = 0;
             const_cast<uint32_t&>(dev->device.width) = m->info.xres;
