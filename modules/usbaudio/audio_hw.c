@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "usb_audio_hw"
-/*#define LOG_NDEBUG 0*/
+//#define LOG_NDEBUG 0
 
 #include <errno.h>
 #include <pthread.h>
@@ -32,6 +32,10 @@
 #include <hardware/audio.h>
 
 #include <tinyalsa/asoundlib.h>
+
+#ifndef CARD_ID
+#define CARD_ID 1
+#endif
 
 struct pcm_config pcm_config = {
     .channels = 2,
@@ -77,7 +81,7 @@ static int start_output_stream(struct stream_out *out)
         return -EINVAL;
 
     ALOGD("start_output_stream()");
-#ifdef QCOM_HARDWARE
+#ifdef USE_MMAP
     out->pcm = pcm_open(adev->card, adev->device, PCM_OUT | PCM_MMAP | PCM_NOIRQ , &pcm_config);
 #else
     out->pcm = pcm_open(adev->card, adev->device, PCM_OUT, &pcm_config);
@@ -164,10 +168,14 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
     ret = str_parms_get_str(parms, "card", value, sizeof(value));
     if (ret >= 0)
         adev->card = atoi(value);
+    else
+        adev->card = CARD_ID;
 
     ret = str_parms_get_str(parms, "device", value, sizeof(value));
     if (ret >= 0)
         adev->device = atoi(value);
+    else
+        adev->device = 0;
 
     ALOGD("out_set_parameters card [%d] device[%d]", adev->card, adev->device);
     pthread_mutex_unlock(&adev->lock);
@@ -199,7 +207,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     int ret;
     struct stream_out *out = (struct stream_out *)stream;
 
-    ALOGD("out_write() USB HAL writing %d", bytes);
+    ALOGV("out_write() USB HAL writing %d", bytes);
     pthread_mutex_lock(&out->dev->lock);
     pthread_mutex_lock(&out->lock);
     if (out->standby) {
@@ -210,7 +218,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         out->standby = false;
     }
 
-#ifdef QCOM_HARDWARE
+#ifdef USE_MMAP
     ret = pcm_mmap_write(out->pcm, (void *)buffer, bytes);
 #else
     pcm_write(out->pcm, (void *)buffer, bytes);
@@ -218,7 +226,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     pthread_mutex_unlock(&out->lock);
     pthread_mutex_unlock(&out->dev->lock);
 
-#ifdef QCOM_HARDWARE
+#ifdef USE_MMAP
     return ret? ret: bytes;
 #else
     return bytes;
