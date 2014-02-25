@@ -41,6 +41,7 @@ __BEGIN_DECLS
 
 #define BT_PROFILE_HANDSFREE_ID "handsfree"
 #define BT_PROFILE_HANDSFREE_CLIENT_ID "handsfree_client"
+#define BT_PROFILE_MULTI_HANDSFREE_ID "multihandsfree"
 #define BT_PROFILE_ADVANCED_AUDIO_ID "a2dp"
 #define BT_PROFILE_HEALTH_ID "health"
 #define BT_PROFILE_SOCKETS_ID "socket"
@@ -51,6 +52,8 @@ __BEGIN_DECLS
 
 #define BT_PROFILE_GATT_ID "gatt"
 #define BT_PROFILE_AV_RC_ID "avrcp"
+
+#define WIPOWER_PROFILE_ID "wipower"
 
 /** Bluetooth Address */
 typedef struct {
@@ -68,6 +71,14 @@ typedef enum {
     BT_SCAN_MODE_CONNECTABLE,
     BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE
 } bt_scan_mode_t;
+
+/*LE ADV modes*/
+typedef enum {
+    BLE_ADV_MODE_NONE,
+    BLE_ADV_IND_GENERAL_CONNECTABLE,
+    BLE_ADV_IND_LIMITED_CONNECTABLE,
+    BLE_ADV_DIR_CONNECTABLE
+} bt_ble_adv_mode_t;
 
 /** Bluetooth Adapter State */
 typedef enum {
@@ -228,6 +239,8 @@ typedef enum {
 
     BT_PROPERTY_REMOTE_VERSION_INFO,
 
+    BT_PROPERTY_ADAPTER_BLE_ADV_MODE,
+
     BT_PROPERTY_REMOTE_DEVICE_TIMESTAMP = 0xFF,
 } bt_property_type_t;
 
@@ -325,6 +338,8 @@ typedef void (*bond_state_changed_callback)(bt_status_t status,
 typedef void (*acl_state_changed_callback)(bt_status_t status, bt_bdaddr_t *remote_bd_addr,
                                             bt_acl_state_t state);
 
+typedef void (*le_adv_enable_callback)(uint8_t enable, uint8_t advType);
+
 typedef void (*le_extended_scan_result_callback)(bt_bdaddr_t* bda, int rssi, uint8_t* adv_data);
 
 /**  Callback invoked when write rssi threshold command complete */
@@ -356,6 +371,10 @@ typedef void (*callback_thread_event)(bt_cb_thread_evt evt);
 /* Receive any HCI event from controller. Must be in DUT Mode for this callback to be received */
 typedef void (*dut_mode_recv_callback)(uint16_t opcode, uint8_t *buf, uint8_t len);
 
+/** Bluetooth HCI event Callback */
+/* Receive any HCI event from controller for raw commands */
+typedef void (*hci_event_recv_callback)(uint8_t event_code, uint8_t *buf, uint8_t len);
+
 /* LE Test mode callbacks
 * This callback shall be invoked whenever the le_tx_test, le_rx_test or le_test_end is invoked
 * The num_packets is valid only for le_test_end command */
@@ -379,7 +398,9 @@ typedef struct {
     acl_state_changed_callback acl_state_changed_cb;
     callback_thread_event thread_evt_cb;
     dut_mode_recv_callback dut_mode_recv_cb;
+    hci_event_recv_callback hci_event_recv_cb;
     le_test_mode_callback le_test_mode_cb;
+    le_adv_enable_callback le_adv_enable_cb;
     le_extended_scan_result_callback le_extended_scan_result_cb;
     le_lpp_write_rssi_thresh_callback          le_lpp_write_rssi_thresh_cb;
     le_lpp_read_rssi_thresh_callback           le_lpp_read_rssi_thresh_cb;
@@ -416,7 +437,7 @@ typedef struct {
      */
     int (*init)(bt_callbacks_t* callbacks );
 
-    /*adds callbacks for QC related calls to the btif env*/
+    /*adds callbacks for Q related calls to the btif env*/
     int (*initq)(bt_callbacks_t* callbacks);
 
     /** Enable Bluetooth. */
@@ -495,9 +516,23 @@ typedef struct {
 
     /* Send any test HCI (vendor-specific) command to the controller. Must be in DUT Mode */
     int (*dut_mode_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
+
+    /* Send any test HCI command to the controller. */
+    int (*hci_cmd_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
+
     /** BLE Test Mode APIs */
     /* opcode MUST be one of: LE_Receiver_Test, LE_Transmitter_Test, LE_Test_End */
     int (*le_test_mode)(uint16_t opcode, uint8_t *buf, uint8_t len);
+
+    int (*le_set_adv_params) (uint16_t int_min, uint16_t int_max, const bt_bdaddr_t *bd_addr, uint8_t ad_type);
+
+    int (*le_set_adv_data_mask) (uint16_t dMask);
+
+    int (*le_set_scan_resp_mask) (uint16_t dMask);
+
+    int (*le_set_manu_data) (uint8_t *buf, uint8_t len);
+
+    int (*le_set_service_data) (uint8_t *buf, uint8_t len);
 
     /* enable or disable bluetooth HCI snoop log */
     int (*config_hci_snoop_log)(uint8_t enable);
